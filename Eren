@@ -1,0 +1,232 @@
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+
+
+
+local Window = OrionLib:MakeWindow({Name = "Levi", HidePremium = false, SaveConfig = true, ConfigFolder = "OrionTest"})
+
+
+
+local Tab = Window:MakeTab({
+
+    Name = "Free Farm",
+
+    Icon = "rbxassetid://4483345998",
+
+    PremiumOnly = false
+
+})
+
+
+
+local Section = Tab:AddSection({
+
+    Name = "Section"
+
+})
+
+
+
+local stopFarming = false
+
+
+
+Tab:AddButton({
+
+    Name = "Free Farm",
+
+    Callback = function()
+
+            task.spawn(function()
+
+                stopFarming = false
+
+                local UselessParts = {"Climbable", "Borders", "Background", "Camps", "Platforms", "Props", "Reloads", "TreeColliders", "Trees"}
+
+                local Players = game:GetService("Players")
+
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+                local LocalPlayer = Players.LocalPlayer
+
+                local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+
+                local HRP = Character:WaitForChild("HumanoidRootPart")
+
+                local Titans = workspace:WaitForChild("Titans")
+
+                local Remotes = ReplicatedStorage:WaitForChild("Assets"):WaitForChild("Remotes")
+
+
+
+                local BP = Instance.new("BodyPosition")
+
+                BP.MaxForce = Vector3.new(0, math.huge, 0)
+
+                BP.D = 1000
+
+                BP.P = 1000
+
+                BP.Parent = HRP
+
+                BP.Name = "BP"
+
+
+
+                local BV = HRP:FindFirstChildOfClass("BodyVelocity") or Instance.new("BodyVelocity")
+
+                BV.MaxForce = Vector3.new(5500, 5500, 5500)
+
+                BV.P = 1250
+
+                BV.Parent = HRP
+
+
+
+                print("Initialization complete.")
+
+
+
+                local function disableCollisions()
+
+                    for _, part in ipairs(Character:GetDescendants()) do
+
+                        if part:IsA("BasePart") then
+
+                            part.CanCollide = false
+
+                        end
+
+                    end
+
+                end
+
+
+
+                local function removeUselessParts()
+
+                    for _, obj in ipairs(workspace:GetDescendants()) do
+
+                        if table.find(UselessParts, obj.Name) then
+
+                            obj:Destroy()
+
+                        end
+
+                    end
+
+                end
+
+
+
+                local function findClosestNape()
+
+                    local closestNape, closestHumanoid, closestDist = nil, nil, math.huge
+
+
+
+                    for _, Titan in ipairs(Titans:GetChildren()) do
+
+                        if Titan:IsA("Model") then
+
+                            local Humanoid = Titan:FindFirstChild("Humanoid")
+
+
+
+                            if Humanoid then
+
+                                for _, Obj in ipairs(Titan:GetDescendants()) do
+
+                                    if Obj.Name == "Nape" and Obj:IsA("BasePart") then
+
+                                        local Dist = (HRP.Position - Obj.Position).Magnitude
+
+
+
+                                        if Dist < closestDist then
+
+                                            closestDist = Dist
+
+                                            closestNape = Obj
+
+                                            closestHumanoid = Humanoid
+
+                                        end
+
+                                    end
+
+                                end
+
+                            end
+
+                        end
+
+                    end
+
+
+
+                    return closestNape, closestHumanoid
+
+                end
+
+
+
+                local function mainLoop()
+
+                    while not stopFarming do
+
+                        local closestNape, closestHumanoid = findClosestNape()
+
+
+
+                        if closestNape and closestHumanoid and closestHumanoid.Parent then
+
+                            BP.Position = Vector3.new(HRP.Position.X, closestNape.Position.Y + 100, HRP.Position.Z)
+
+                            BV.Velocity = (closestNape.Position - HRP.Position).Unit * math.clamp((closestNape.Position - HRP.Position).Magnitude * 10, 0, 250)
+
+
+
+                            Remotes.POST:FireServer("Attacks", "Slash", true)
+
+                            Remotes.GET:InvokeServer("Hitboxes", "Register", closestNape, math.random(225000, 230000), math.random(500000, 1000000))
+
+                        end
+
+
+
+                        task.wait(0)
+
+                    end
+
+                end
+
+
+
+                disableCollisions()
+
+                removeUselessParts()
+
+                mainLoop()
+
+            end)
+
+    end    
+
+})
+
+
+
+Tab:AddButton({
+
+    Name = "Stop Free Farm",
+
+    Callback = function()
+
+            stopFarming = true
+
+            print("Free farming stopped.")
+
+    end    
+
+})
+
